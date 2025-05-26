@@ -107,23 +107,28 @@ class CartController extends Controller
         ]);
     }
 
-    private function getCart()
-    {
-        if (auth()->check()) {
-            return Cart::firstOrCreate(['user_id' => auth()->id()]);
-        } else {
-            $cartId = session('cart_id');
-            if ($cartId) {
-                $cart = Cart::find($cartId);
-                if (!$cart) {
-                    $cart = Cart::create();
-                    session(['cart_id' => $cart->id]);
-                }
-            } else {
+   private function getCart()
+{
+    if (auth()->check()) {
+        // Utilisateur connecté
+        return Cart::firstOrCreate(['user_id' => auth()->id()]);
+    } else {
+        // Utilisateur invité (gestion par session)
+        $cartId = session()->get('cart_id');
+        
+        if ($cartId) {
+            $cart = Cart::find($cartId);
+            if (!$cart) {
+                // Si le panier n'existe pas, créez-en un nouveau sans user_id
                 $cart = Cart::create();
                 session(['cart_id' => $cart->id]);
             }
             return $cart;
+        } else {
+            $cart = Cart::create();
+            session(['cart_id' => $cart->id]);
+            return $cart;
         }
     }
+}
 }

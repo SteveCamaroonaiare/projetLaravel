@@ -18,23 +18,82 @@ class Product extends Model
         'price',
         'quantity',
         'image',
-        'dateOfSale',
-        'percent',
-        'numberOfSale',
-        'reference',
-        'category_id',
-        'number0fStars',
         'sexes',
         'is_new',
         'is_trending',
-        'is_promo'
+        'is_promo',
+        'percent',
+        'numberOfStars',
+        'color_variants'
     ];
 
     protected $casts = [
-        'dateOfSale' => 'date',
+        'is_new' => 'boolean',
+        'is_trending' => 'boolean',
+        'is_promo' => 'boolean',
         'price' => 'decimal:2',
         'percent' => 'decimal:2',
+        'color_variants' => 'array'
     ];
+
+    // Accessor pour l'URL de l'image
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) return null;
+        
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+        
+        return asset('storage/' . $this->image);
+    }
+    // Calcul du prix promo
+    public function getPromoPriceAttribute()
+    {
+        return $this->is_promo 
+            ? round($this->price * (1 - $this->percent / 100), 2)
+            : null;
+    }
+
+    
+
+
+// Dans app/Models/Product.php
+
+// Remplacez l'accesseur existant par :
+public function getColorVariants()
+{
+    if (empty($this->color_variants)) {
+        return [];
+    }
+    
+    $decoded = json_decode($this->color_variants, true);
+    
+    return is_array($decoded) ? $decoded : [];
+}
+
+// Ajoutez ceci pour garder l'image originale accessible
+public function getOriginalImageUrlAttribute()
+{
+    return Storage::url($this->image);
+}
+
+public function getColorImageUrlAttribute()
+{
+    return function ($colorSuffix) {
+        if (empty($colorSuffix)) {
+            return $this->original_image_url;
+        }
+        
+        $path = str_replace('.jpg', "-{$colorSuffix}.jpg", $this->image);
+        
+        return Storage::exists($path) 
+            ? Storage::url($path)
+            : $this->original_image_url;
+    };
+}
+
+
 
     /**
      * Get the category that owns the product.

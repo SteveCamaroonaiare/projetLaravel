@@ -18,5 +18,11 @@ class DatabaseSeeder extends Seeder
         //     'name' => 'Test User',
         //     'email' => 'test@example.com',
         // ]);
+        Product::where('image', 'like', '%e1.jpg')->update([
+            'color_variants' => json_encode([
+                ['name' => 'Rouge', 'code' => '#FF0000', 'suffix' => 'red'],
+                ['name' => 'Bleu', 'code' => '#0000FF', 'suffix' => 'blue']
+            ])
+        ]);
     }
 }

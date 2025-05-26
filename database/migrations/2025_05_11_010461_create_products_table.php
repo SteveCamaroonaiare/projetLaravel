@@ -17,18 +17,15 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2);
             $table->integer('quantity')->default(0);
-            $table->date('dateOfSale')->nullable();
-            $table->decimal('percent', 5, 2)->nullable();
-            $table->integer('numberOfSale')->default(0);
-            $table->string('reference')->unique();
-            $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->unsignedTinyInteger('numberOfStars')->default(5); // ⭐
-            $table->enum('sexes', ['Hommes', 'Femmes', 'Enfants']);   // sexe ciblé
-            $table->boolean('is_new')->default(false);         // Nouveautés
-            $table->boolean('is_trending')->default(false);    // Tendances
-            $table->boolean('is_promo')->default(false);       // Promotions
+            $table->enum('sexes', ['Hommes', 'Femmes', 'Enfants']);
+            $table->string('image'); // Chemin de l'image
+            $table->boolean('is_new')->default(false);
+            $table->boolean('is_trending')->default(false);
+            $table->boolean('is_promo')->default(false);
+            $table->decimal('percent', 5, 2)->default(0);
+            $table->unsignedTinyInteger('numberOfStars')->default(5);
             $table->timestamps();
-        });
+});
     }
 
     /**

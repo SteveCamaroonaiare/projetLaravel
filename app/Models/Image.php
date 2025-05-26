@@ -11,16 +11,12 @@ class Image extends Model
     use HasFactory;
 
     protected $fillable = [
-        'imageUrl',
-        'isPrincipal',
+        
         'product_id',
-        'category_id',
-        'image'
+        'path'
     ];
 
-    protected $casts = [
-        'isPrincipal' => 'boolean',
-    ];
+
 
     /**
      * Get the product that owns the image.

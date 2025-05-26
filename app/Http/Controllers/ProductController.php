@@ -6,35 +6,156 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\Image;
-
+use Illuminate\Support\Facades\Storage;
 class ProductController extends Controller
 {
     /**
      * Récupérer les nouveautés (produits créés dans les 30 derniers jours).
      */
    // Récupère les nouveautés
+    
+
+   // Pour la page HomeShop (produits normaux)
+    public function getShopProducts(Request $request)
+    {
+        $query = Product::query();
+        
+        // Filtre par catégorie si spécifié
+        if ($request->has('category')) {
+            $query->where('sexes', $request->category);
+        }
+        
+        $products = $query->get()->map(function($product) {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'image' => asset(str_replace('public/', 'images/', $product->image)),
+            'is_promo' => $product->is_promo,
+            'percent' => $product->percent,
+            'numberOfStars' => $product->numberOfStars
+        ];
+    });
+    
+    return response()->json($products);
+
+    }
+
+    // Pour la page Home - Nouveautés
     public function getNewProducts()
     {
-        $products = Product::where('is_new', true)->latest()->take(8)->get();
-        return response()->json($products, 200);
+        return response()->json(
+            Product::where('is_new', true)
+                ->orderBy('created_at', 'desc')
+                ->take(6)
+                ->get()
+                ->map(function($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'image_url' => asset(str_replace('public/', 'images/', $product->image)),
+                    'is_new' => $product->is_new // Pour débogage
+                ];
+            })
+                
+        );
     }
 
-    // Récupère les tendances
+    // Pour la page Home - Tendances
     public function getTrendingProducts()
-    {
-        $products = Product::where('is_trending', true)->orderBy('updated_at', 'desc')->take(8)->get();
-        return response()->json($products, 200);
-    }
+{
+    return response()->json(
+        Product::where('is_trending', true)
+            ->orderBy('created_at', 'desc') // Ou un champ existant comme 'updated_at'
+            ->take(8)
+            ->get()
+            ->map(function($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'image_url' => asset(str_replace('public/', 'images/', $product->image)),
+                    'is_trending' => $product->is_trending // Pour débogage
+                ];
+            })
+    );
+}
 
-    // Récupère les promotions
+    // Pour la page Home - Promotions
     public function getPromoProducts()
     {
-        $products = Product::where('is_promo', true)->orderBy('updated_at', 'desc')->take(8)->get();
-        return response()->json($products, 200);
+        return response()->json(
+            Product::where('is_promo', true)
+                ->orderBy('percent', 'desc')
+                ->take(8)
+                ->get()
+                ->map(function($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'price' => $product->price,
+                'promo_price' => $product->price * (1 - $product->percent / 100),
+                'image_url' => asset(str_replace('public/', 'images/', $product->image)),
+                // autres champs...
+                'is_promo' => $product->is_promo // Pour débogage
+
+            ];
+        })
+        );
     }
 
+    // Pour ajouter un produit
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:0',
+            'sexes' => 'required|in:Hommes,Femmes,Enfants',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'is_new' => 'boolean',
+            'is_trending' => 'boolean',
+            'is_promo' => 'boolean',
+            'percent' => 'required_if:is_promo,true|numeric|min:0|max:100',
+            'numberOfStars' => 'required|integer|min:1|max:5',
+            'color_variants' => 'nullable|json'
 
 
+        ]);
+
+            // Conversion des valeurs si nécessaire
+        $validated['is_new'] = (bool)($validated['is_new'] ?? false);
+        $validated['is_trending'] = (bool)($validated['is_trending'] ?? false);
+        $validated['is_promo'] = (bool)($validated['is_promo'] ?? false);
+
+
+        // Enregistrement de l'image
+        $imagePath = $request->file('image')->store('images', 'public');
+ $imageUrl = asset(`storage/$imagePath`);
+        $product = Product::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'price' => $validated['price'],
+            'quantity' => $validated['quantity'],
+            'sexes' => $validated['sexes'],
+            'image' => $imagePath,
+            'is_new' => $validated['is_new'] ?? false,
+            'is_trending' => $validated['is_trending'] ?? false,
+            'is_promo' => $validated['is_promo'] ?? false,
+            'percent' => $validated['percent'] ?? 0,
+            'numberOfStars' => $request->numberOfStars,
+                    'color_variants' => $request->color_variants ?? json_encode([])
+
+
+        ]);
+
+        return response()->json([
+                'message' => 'Produit créé avec succès',
+                'data' => $product //->load(['image']) // Charge la relation si nécessaire
+            ], 201);    }
 
     
     /*public function uploadImages(Request $request, $id)
@@ -59,68 +180,22 @@ class ProductController extends Controller
     /**
      * Récupérer les détails d'un produit avec suggestions.
      */
+      // Afficher un produit spécifique
     public function show($id)
     {
-        $product = Product::with(['images', 'category', 'variations.variableTypes.variable'])
-            ->findOrFail($id);
-
-        $relatedProducts = Product::where('category_id', $product->category_id)
-            ->where('id', '!=', $product->id)
-            ->with('images')
-            ->limit(4)
-            ->get();
-
-        return response()->json([
-            'product' => $product,
-            'related_products' => $relatedProducts
-        ]);
+        try {
+            $product = Product::with('images')->findOrFail($id);
+            
+            return response()->json($product);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Product not found'
+            ], 404);
+        }
     }
 
-    public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required',
-        'price' => 'required|numeric',
-        'category_id' => 'required|exists:categories,id',
-        'numberOfStars' => 'required|integer|min:1|max:5',
-        'sexes' => 'required|in:Hommes,Femmes,Enfants',
-        'image' => 'required|image|mimes:jpg,jpeg,png'
-    ]);
-
-   $product = Product::create([
-    'name' => $request->name,
-    'description' => $request->description,
-    'price' => $request->price,
-    'quantity' => $request->quantity,
-    'dateOfSale' => $request->dateOfSale,
-    'percent' => $request->percent,
-    'numberOfSale' => $request->numberOfSale,
-    'reference' => $request->reference,
-    'category_id' => $request->category_id,
-    'numberOfStars' => $request->numberOfStars,
-    'sexes' => $request->sexes,
-    'is_new' => $request->has('is_new'),
-    'is_trending' => $request->has('is_trending'),
-    'is_promo' => $request->has('is_promo'),
-]);
-
-
-    if ($request->hasFile('image')) {
-        $file = $request->file('image');
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $file->storeAs('public/images', $filename);
-
-        $product->images()->create([
-            'image' => $filename,
-            'imageUrl' => 'storage/images/' . $filename,
-            'isPrincipal' => true
-        ]);
-    }
-
-    return response()->json($product->load('images'), 201);
-}
-   
-
+    
 public function index()
 {
     $products = Product::all();
@@ -174,6 +249,16 @@ public function update(Request $request, $id)
     return response()->json($product);
 }
 
+    
+
+  public function fixImagePaths()
+{
+    Product::all()->each(function($product) {
+        $product->update([
+            'image' => str_replace('/storage/public/', '/storage/', $product->image)
+        ]);
+    });
+}
 
 }
 

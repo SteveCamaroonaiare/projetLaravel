@@ -78,13 +78,22 @@ Route::post('/verify/resend', [AuthController::class, 'resendVerificationCode'])
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{id}', [CategoryController::class, 'show'])->name('categories.show');
 
-Route::get('/products/new', [ProductController::class, 'getNewProducts']);
-Route::get('/products/trending', [ProductController::class, 'getTrendingProducts']);
-Route::get('/products/promo', [ProductController::class, 'getPromoProducts']);
-Route::get('/products/home', [ProductController::class, 'homeProducts']);
-Route::get('/products/{id}', [ProductController::class, 'show']);
-Route::post('/products', [ProductController::class, 'store']);
-Route::get('/products', [ProductController::class, 'index']);
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::get('/products/shop', [ProductController::class, 'getShopProducts']);
+    Route::get('/products/new', [ProductController::class, 'getNewProducts']);
+    Route::get('/products/trending', [ProductController::class, 'getTrendingProducts']);
+    Route::get('/products/promo', [ProductController::class, 'getPromoProducts']);
+    Route::get('/products/{id}', [ProductController::class, 'show']);
+    Route::get('/products/{id}/image', function ($id) {
+    $product = Product::findOrFail($id);
+    $color = request('color');
+    
+    return response()->json([
+        'image_url' => $product->getImageForColor($color)
+    ]);
+});
+
+    Route::get('/products/{id}/reviews', [ProductController::class, 'getReviews']);
 // Routes pour les commentaires
 Route::get('/products/{productId}/comments', [CommentController::class, 'index']);
 Route::post('/products/{productId}/comments', [CommentController::class, 'store'])->middleware('auth:sanctum');
