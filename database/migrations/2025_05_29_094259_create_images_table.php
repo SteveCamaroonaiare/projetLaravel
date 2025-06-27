@@ -9,15 +9,16 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
-{
-    Schema::create('images', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('product_id')->constrained()->onDelete('cascade');
-        $table->string('path'); // Chemin de l'image (ex: 'public/images/xxx.jpg')
-        $table->timestamps();
-    });
-}
+    public function up(): void
+    {
+        Schema::create('images', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->string('path');
+            $table->boolean('is_main')->default(false);
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

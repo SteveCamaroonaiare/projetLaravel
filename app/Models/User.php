@@ -123,4 +123,9 @@ class User extends Authenticatable
             'verification_code_expires_at' => null,
         ]);
     }
+    public function orders()
+{
+    return $this->hasMany(Order::class);
+}
+
 }

@@ -88,8 +88,8 @@ class ProductController extends Controller
     {
         return response()->json(
             Product::where('is_promo', true)
-                ->orderBy('percent', 'desc')
-                ->take(8)
+                ->orderBy('created_at', 'desc')
+                ->take(5)
                 ->get()
                 ->map(function($product) {
             return [
@@ -115,13 +115,14 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:0',
             'sexes' => 'required|in:Hommes,Femmes,Enfants',
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_new' => 'boolean',
             'is_trending' => 'boolean',
             'is_promo' => 'boolean',
             'percent' => 'required_if:is_promo,true|numeric|min:0|max:100',
             'numberOfStars' => 'required|integer|min:1|max:5',
-            'color_variants' => 'nullable|json'
+            'color_variants' => 'nullable|json',
+            'moreImgs'=>'nullable|array'
 
 
         ]);
@@ -147,15 +148,23 @@ class ProductController extends Controller
             'is_promo' => $validated['is_promo'] ?? false,
             'percent' => $validated['percent'] ?? 0,
             'numberOfStars' => $request->numberOfStars,
-                    'color_variants' => $request->color_variants ?? json_encode([])
+            
+            
 
 
         ]);
 
-        return response()->json([
-                'message' => 'Produit créé avec succès',
-                'data' => $product //->load(['image']) // Charge la relation si nécessaire
-            ], 201);    }
+        // Handle additional images
+if ($request->hasFile('moreImgs')) {
+    foreach ($request->file('moreImgs') as $image) {
+        $path = $image->store('images', 'public');
+        $product->images()->create(['path' => $path]);
+    }
+}
+
+        return response()->json(
+                $product //->load(['image']) // Charge la relation si nécessaire
+            , 201);    }
 
     
     /*public function uploadImages(Request $request, $id)
@@ -181,7 +190,7 @@ class ProductController extends Controller
      * Récupérer les détails d'un produit avec suggestions.
      */
       // Afficher un produit spécifique
-    public function show($id)
+     public function show($id)
     {
         try {
             $product = Product::with('images')->findOrFail($id);
@@ -195,12 +204,13 @@ class ProductController extends Controller
         }
     }
 
+
     
 public function index()
-{
-    $products = Product::all();
-    return response()->json($products);
-}
+    {
+        $products = Product::with(['variants.color', 'variants.images'])->get();
+        return response()->json($products);
+    }
 
 
 
@@ -228,7 +238,7 @@ public function filter(Request $request)
     if ($request->has('stars')) {
         $query->where('numberOfStars', '>=', $request->stars);
     }
-
+    
     return response()->json($query->get(), 200);
 }
 
@@ -240,6 +250,8 @@ public function update(Request $request, $id)
     $product->update([
         'name' => $request->name,
         'price' => $request->price,
+        'description' => $request->description,
+
         'is_new' => $request->has('is_new') ? 1 : 0,
         'is_trending' => $request->has('is_trending') ? 1 : 0,
         'is_promo' => $request->has('is_promo') ? 1 : 0,
@@ -248,6 +260,13 @@ public function update(Request $request, $id)
 
     return response()->json($product);
 }
+
+
+public function destroy($id)
+    {
+        Product::destroy($id);
+        return response()->json(null, 204);
+    }
 
     
 

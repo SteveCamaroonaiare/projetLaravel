@@ -4,25 +4,51 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\File;
 
 class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
      */
-    public function run(): void
-    {
-        // \App\Models\User::factory(10)->create();
+    // database/seeders/DatabaseSeeder.php
+// database/seeders/DatabaseSeeder.php
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-        Product::where('image', 'like', '%e1.jpg')->update([
-            'color_variants' => json_encode([
-                ['name' => 'Rouge', 'code' => '#FF0000', 'suffix' => 'red'],
-                ['name' => 'Bleu', 'code' => '#0000FF', 'suffix' => 'blue']
-            ])
+public function run()
+{
+    // ... (création des tailles, couleurs et produits comme précédemment)
+
+    // Chemin absolu vers le dossier public/images
+    $imagesPath = public_path('images');
+    
+    // Liste des images disponibles avec vérification d'existence
+    $availableImages = collect([
+        'a1.jpg',
+        'aa.png',
+        'as.jpeg',
+        'avatar.jpg'
+        // Ajoutez toutes vos images potentielles ici
+    ])->filter(function ($image) use ($imagesPath) {
+        return File::exists($imagesPath.'/'.$image);
+    })->toArray();
+
+    // Fallback si aucune image n'est trouvée
+    if (empty($availableImages)) {
+        throw new \Exception("Aucune image valide trouvée dans public/images/");
+    }
+
+    // Création des variantes avec images vérifiées
+    foreach (\App\Models\Color::all() as $index => $color) {
+        $imageName = $availableImages[$index % count($availableImages)];
+        
+        $variant = $product->variants()->create(['color_id' => $color->id]);
+        $variant->sizes()->attach($sizes->random(3));
+        
+        $variant->images()->create([
+            'path' => 'images/'.$imageName, // Chemin relatif
+            'is_main' => true
         ]);
     }
+}
 }

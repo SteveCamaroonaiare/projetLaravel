@@ -33,4 +33,8 @@ class Image extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function productVariant() {
+    return $this->belongsTo(ProductVariant::class);
+}
 }

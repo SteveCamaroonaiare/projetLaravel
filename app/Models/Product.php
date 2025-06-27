@@ -36,6 +36,12 @@ class Product extends Model
         'color_variants' => 'array'
     ];
 
+
+    public function orders()
+{
+    return $this->belongsToMany(Order::class)->withPivot('quantity', 'price')->withTimestamps();
+}
+
     // Accessor pour l'URL de l'image
     public function getImageUrlAttribute()
     {
@@ -152,4 +158,37 @@ public function getColorImageUrlAttribute()
     {
         return $this->belongsToMany(VariableType::class);
     }
+
+
+    public function colors()
+{
+    return $this->belongsToMany(Color::class)->withPivot('image_url');
 }
+
+public function sizes()
+{
+    return $this->belongsToMany(Size::class)->withPivot('stock');
+}
+
+public function mainImages()
+{
+    return $this->hasMany(Image::class)->where('type', 'main');
+}
+
+public function thumbnailImages()
+{
+    return $this->hasMany(Image::class)->where('type', 'thumbnail');
+}
+
+
+public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+
+
+    
+}
+
+
