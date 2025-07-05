@@ -17,6 +17,15 @@ class DatabaseSeeder extends Seeder
 
 public function run()
 {
+    $this->call([
+        UsersTableSeeder::class,
+        CategoriesTableSeeder::class,
+        ProductsTableSeeder::class,
+        ProductVariantsTableSeeder::class,
+        ImagesTableSeeder::class,
+        CommentsTableSeeder::class,
+        CartsTableSeeder::class,
+    ]);
     // ... (création des tailles, couleurs et produits comme précédemment)
 
     // Chemin absolu vers le dossier public/images
